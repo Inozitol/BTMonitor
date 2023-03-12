@@ -1,0 +1,21 @@
+#pragma once
+
+enum class bt_type_t {
+
+    /// DHT Types
+    QUERY_PING,
+    QUERY_FIND_NODE,
+    QUERY_GET_PEERS,
+    QUERY_ANNOUNCE_PEER,
+    RESPONSE_PING,
+    RESPONSE_FIND_NODE,
+    RESPONSE_GET_PEERS,
+    RESPONSE_ANNOUNCE_PEER,
+
+    /// DNS Types
+    DNS_BOOTSTRAP,
+    DNS_MAINLINE_STAT,
+    DNS_MAINLINE,
+
+    UNKNOWN
+};
