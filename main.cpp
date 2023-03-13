@@ -15,8 +15,9 @@ packet_data_t pkt{};
 
 void packet_callback(u_char*, const struct pcap_pkthdr*, const u_char*);
 
+/// SIGINT and SIGTERM are expected ways to exit this program, therefore we need to handle them safely
 void signal_handle(int sig){
-    std::cout << "Interrupt signal [" << sig << "] received." << std::endl;
+    std::cout << "\nInterrupt signal [" << sig << "] received." << std::endl;
 
     if(sig == SIGTERM || sig == SIGINT){
         if(program_data.program_flags & program_flags_t::to_file) {
@@ -29,16 +30,26 @@ void signal_handle(int sig){
 
 int main(int argc, char* argv[]) {
     signal(SIGTERM, signal_handle);
+    signal(SIGINT, signal_handle);
 
     std::vector<std::string> args_vec(argv+1, argv+argc);
 
     for(auto i = args_vec.begin(); i != args_vec.end(); ++i){
         if(*i == "-i" || *i == "--interface") {
-            program_data.interface = *++i;
+            i++;
+            if(i == args_vec.end()){
+                fprintf(stderr, "Error: Missing interface argument. See --help for more information.\n");
+                return -1;
+            }
+            program_data.interface = *i;
             program_data.program_flags = program_data.program_flags | program_flags_t::manual_interface;
         }else if(*i == "-o" || *i == "--output"){
-
-            program_data.out_file.open(*++i, std::ios::trunc);
+            i++;
+            if(i == args_vec.end()){
+                fprintf(stderr, "Error: Missing output file argument. See --help for more information.\n");
+                return -1;
+            }
+            program_data.out_file.open(*i, std::ios::trunc);
             if(!program_data.out_file.is_open()){
                 fprintf(stderr, "Error: file '%s' could not be opened.", &(*i->data()));
                 return -1;
@@ -49,6 +60,8 @@ int main(int argc, char* argv[]) {
             program_data.program_flags |= program_flags_t::to_stdout;
         }else if(*i == "-h" || *i == "--help"){
             std::cout << "BitTorrent Monitor\n";
+            std::cout << "Output data order:\n";
+            std::cout << "\tIP Source | IP Destination | L4 Protocol | L4 Source Port | L4 Destination Port | Packet type\n";
             std::cout << "Options:\n";
             std::cout << "-i [INTERFACE], --interface [INTERFACE]\n\t\tSelect interface to listen on.\n";
             std::cout << "-o [FILE], --output [FILE]\n\t\tWrites gathered packets on lines of selected FILE in csv format.\n";
@@ -58,12 +71,17 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    if(!(program_data.program_flags & program_flags_t::to_file) && !(program_data.program_flags & program_flags_t::to_stdout)){
+        std::cout << "No output selected. See --help for more information." << std::endl;
+        return -1;
+    }
+
     dht_regex::history_clear_start(30);
 
     pcap_t* handle;
     char err_buffer[PCAP_ERRBUF_SIZE];
 
-    // User picked interface in argument
+    // User picked interface in an argument
     if(program_data.program_flags & program_flags_t::manual_interface) {
         if((handle = pcap_open_live(program_data.interface.data(), 65536, 1, 1000, err_buffer)) == nullptr){
             std::cout << "Unable to open interface " << program_data.interface << "\n";
@@ -141,6 +159,12 @@ void process_udp(const udphdr* udp_hdr, const u_char* packet, uint32_t hdrs_len,
         pkt.bt_t = dns_regex::match(payload);
         goto udp_exit;
     }
+
+    if(src < 1024 || dst < 1024 ){
+        pkt.bt_t = bt_type_t::UNKNOWN;
+        goto udp_exit;
+    }
+
     pkt.bt_t = dht_regex::match(payload);
     goto udp_exit;
 
