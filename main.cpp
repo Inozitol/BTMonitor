@@ -58,6 +58,8 @@ int main(int argc, char* argv[]) {
             program_data.program_flags |= program_flags_t::to_file;
         }else if(*i == "-s" || *i == "--to-stdout"){
             program_data.program_flags |= program_flags_t::to_stdout;
+        }else if(*i == "-b" || *i == "--only-bt"){
+            program_data.program_flags |= program_flags_t::only_bt;
         }else if(*i == "-h" || *i == "--help"){
             std::cout << "BitTorrent Monitor\n";
             std::cout << "Output data order:\n";
@@ -66,6 +68,7 @@ int main(int argc, char* argv[]) {
             std::cout << "-i [INTERFACE], --interface [INTERFACE]\n\t\tSelect interface to listen on.\n";
             std::cout << "-o [FILE], --output [FILE]\n\t\tWrites gathered packets on lines of selected FILE in csv format.\n";
             std::cout << "-s, --to-stdout\n\t\tOutputs live data into stdout.\n";
+            std::cout << "-b, --only-bt\n\t\tOutputs only packets attributed to BitTorrent traffic.\n";
             std::cout << std::endl;
             return 0;
         }

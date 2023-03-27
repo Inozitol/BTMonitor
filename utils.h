@@ -8,7 +8,8 @@
 enum program_flags_t : u_int8_t {
     manual_interface = 0b0001,
     to_file          = 0b0010,
-    to_stdout        = 0b0100
+    to_stdout        = 0b0100,
+    only_bt          = 0b1000
 };
 
 inline program_flags_t operator|(program_flags_t ls, program_flags_t rs){
@@ -45,6 +46,8 @@ void init_csv(){
 }
 
 void output_pkt(const packet_data_t& pkt){
+    if(program_data.program_flags & program_flags_t::only_bt && pkt.bt_t == bt_type_t::UNKNOWN)
+        return;
 
     if(program_data.program_flags & program_flags_t::to_file){
         program_data.out_file <<
