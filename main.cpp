@@ -9,9 +9,13 @@
 
 #include "bt-dht-regex.h"
 #include "bt-dns-regex.h"
+#include "flow-analyzer.h"
 #include "utils.h"
 
+program_data_t program_data;
 packet_data_t pkt{};
+thread_killer_t thread_killer;
+std::vector <std::future<void>> tasks;
 
 void packet_callback(u_char*, const struct pcap_pkthdr*, const u_char*);
 
@@ -23,6 +27,13 @@ void signal_handle(int sig){
         if(program_data.program_flags & program_flags_t::to_file) {
             std::cout << "Closing file." << std::endl;
             program_data.out_file.close();
+        }
+        if(program_data.program_flags & program_flags_t::flow_mode){
+            std::cout << "Waiting for threads to finish." << std::endl;
+            thread_killer.kill();
+            for(auto&& task:tasks){
+                task.wait();
+            }
         }
     }
     exit(sig);
@@ -43,32 +54,52 @@ int main(int argc, char* argv[]) {
             }
             program_data.interface = *i;
             program_data.program_flags = program_data.program_flags | program_flags_t::manual_interface;
-        }else if(*i == "-o" || *i == "--output"){
+        }else if(*i == "-o" || *i == "--output") {
             i++;
-            if(i == args_vec.end()){
+            if (i == args_vec.end()) {
                 fprintf(stderr, "Error: Missing output file argument. See --help for more information.\n");
                 return -1;
             }
             program_data.out_file.open(*i, std::ios::trunc);
-            if(!program_data.out_file.is_open()){
+            if (!program_data.out_file.is_open()) {
                 fprintf(stderr, "Error: file '%s' could not be opened.", &(*i->data()));
                 return -1;
             }
             init_csv();
             program_data.program_flags |= program_flags_t::to_file;
+        }else if(*i == "-p" || *i == "--pcap"){
+            i++;
+            if(i == args_vec.end()){
+                fprintf(stderr, "Error: Missing pcap file argument. See --help for more information.\n");
+                return -1;
+            }
+            program_data.pcap_file = *i;
+            program_data.program_flags |= program_flags_t::offline_mode;
         }else if(*i == "-s" || *i == "--to-stdout"){
             program_data.program_flags |= program_flags_t::to_stdout;
         }else if(*i == "-b" || *i == "--only-bt"){
             program_data.program_flags |= program_flags_t::only_bt;
+        }else if(*i == "-f" || *i == "--flow-mode"){
+            program_data.program_flags |= program_flags_t::flow_mode;
+        }else if(*i == "-ft" || *i == "--flow-timeout"){
+            i++;
+            if(i == args_vec.end()){
+                fprintf(stderr, "Error: Missing time argument in timeout. See --help for more information.\n");
+                return -1;
+            }
+            program_data.flow_timeout = std::stoi(*i);
         }else if(*i == "-h" || *i == "--help"){
             std::cout << "BitTorrent Monitor\n";
             std::cout << "Output data order:\n";
-            std::cout << "\tIP Source | IP Destination | L4 Protocol | L4 Source Port | L4 Destination Port | Packet type\n";
+            std::cout << "\tIP Source | IP Destination | L4 Protocol | L4 Source Port | L4 Destination Port | Packet Timestamp | Packet type\n";
             std::cout << "Options:\n";
             std::cout << "-i [INTERFACE], --interface [INTERFACE]\n\t\tSelect interface to listen on.\n";
             std::cout << "-o [FILE], --output [FILE]\n\t\tWrites gathered packets on lines of selected FILE in csv format.\n";
+            std::cout << "-p [FILE], --pcap [FILE]\n\t\tUses a pcap file as input, instead of live monitoring.\n";
             std::cout << "-s, --to-stdout\n\t\tOutputs live data into stdout.\n";
             std::cout << "-b, --only-bt\n\t\tOutputs only packets attributed to BitTorrent traffic.\n";
+            std::cout << "-f, --flow-mode\n\t\tAnalyzes traffic based on bidirectional flows between IPs and ports.\n";
+            std::cout << "-ft [MICROSECONDS], --flow-timeout [MICROSECONDS]\n\t\tSets the timeout timespan for flows.\n";
             std::cout << std::endl;
             return 0;
         }
@@ -79,15 +110,24 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    dht_regex::history_clear_start(30);
+    if((program_data.program_flags & program_flags_t::flow_mode) && !(program_data.program_flags & program_flags_t::offline_mode) ) {
+        flow_analyzer::timeout_clear_start(program_data.flow_wait);
+    }else{
+        dht_regex::history_clear_start(30);
+    }
 
     pcap_t* handle;
     char err_buffer[PCAP_ERRBUF_SIZE];
 
-    // User picked interface in an argument
-    if(program_data.program_flags & program_flags_t::manual_interface) {
+    if(program_data.program_flags & program_flags_t::offline_mode){                 // User picked pcap file as input
+        if((handle = pcap_open_offline(program_data.pcap_file.data(), err_buffer)) == nullptr){
+            fprintf(stderr,"Unable to open pcap file %s \n", program_data.pcap_file.data());
+            (stderr, "%s\n", err_buffer);
+            return -1;
+        }
+    }else if(program_data.program_flags & program_flags_t::manual_interface) {     // User picked interface in an argument
         if((handle = pcap_open_live(program_data.interface.data(), 65536, 1, 1000, err_buffer)) == nullptr){
-            std::cout << "Unable to open interface " << program_data.interface << "\n";
+            fprintf(stderr,"Unable to open open interface %s \n", program_data.interface.data());
             fprintf(stderr, "%s\n",err_buffer);
             return -1;
         }
@@ -132,6 +172,20 @@ int main(int argc, char* argv[]) {
     pcap_loop(handle, 0, packet_callback, nullptr);
     pcap_close(handle);
 
+    if(program_data.program_flags & program_flags_t::flow_mode){
+        if(program_data.program_flags & program_flags_t::offline_mode){
+            for(auto& flow : flow_analyzer::flow_map){
+                flow.second.output_flow();
+            }
+        }else {
+            //std::cout << "Waiting for threads to finish." << std::endl;
+            thread_killer.kill();
+            for (auto &&task: tasks) {
+                task.wait();
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -143,6 +197,12 @@ void process_tcp(const tcphdr* tcp_hdr, const u_char* packet, uint32_t hdrs_len,
     pkt.l4_dst = dst;
 
     std::string payload(reinterpret_cast<const char*>(packet+hdrs_len), total_len-hdrs_len);
+
+    if(program_data.program_flags & program_flags_t::flow_mode){
+        pkt.payload = payload;
+        flow_analyzer::process_pkt(pkt);
+        return;
+    }
 
     pkt.bt_t = bt_type_t::UNKNOWN;
 
@@ -157,6 +217,12 @@ void process_udp(const udphdr* udp_hdr, const u_char* packet, uint32_t hdrs_len,
     pkt.l4_dst = dst;
 
     std::string payload(reinterpret_cast<const char*>(packet+hdrs_len), total_len-hdrs_len);
+
+    if(program_data.program_flags & program_flags_t::flow_mode){
+        pkt.payload = payload;
+        flow_analyzer::process_pkt(pkt);
+        return;
+    }
 
     if(src == 53 || dst == 53){
         pkt.bt_t = dns_regex::match(payload);
@@ -195,6 +261,7 @@ void packet_callback(u_char*, const struct pcap_pkthdr *header, const u_char* pa
     ip_hdr = (ip*)(packet + sizeof(struct ether_header));
     ip_len = ip_hdr->ip_hl*4;
 
+    pkt.ts = timeval2timepoint(header->ts);
     pkt.ip_src = ip_hdr->ip_src;
     pkt.ip_dst = ip_hdr->ip_dst;
     pkt.l4_p   = ip_hdr->ip_p;
