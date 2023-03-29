@@ -12,13 +12,16 @@ void output_pkt(const packet_data_t& pkt){
     if(program_data.program_flags & program_flags_t::only_bt && pkt.bt_t == bt_type_t::UNKNOWN)
         return;
 
+    const std::time_t timestamp = std::chrono::system_clock::to_time_t(pkt.ts);
+
     if(program_data.program_flags & program_flags_t::to_file){
         program_data.out_file <<
                               inet_ntoa(pkt.ip_src) << ',' <<
                               inet_ntoa(pkt.ip_dst) << ',' <<
                               ((pkt.l4_p == IPPROTO_UDP) ? ("udp") : ("tcp")) << ',' <<
                               pkt.l4_src << ',' <<
-                              pkt.l4_dst << ',';
+                              pkt.l4_dst << ',' <<
+                              std::put_time(std::localtime(&timestamp), "%F %T") << " | ";
         switch(pkt.bt_t){
 
             case bt_type_t::QUERY_PING:
@@ -68,9 +71,8 @@ void output_pkt(const packet_data_t& pkt){
                   std::setw(15) << inet_ntoa(pkt.ip_dst) << " | " <<
                   ((pkt.l4_p == IPPROTO_UDP) ? ("udp") : ("tcp")) << " | " <<
                   std::setw(5) << pkt.l4_src << " | " <<
-                  std::setw(5) << pkt.l4_dst << " | ";
-        // TODO Print time
-        //std::put_time(std::localtime(std::chrono::system_clock::to_time_t(pkt.ts)), "%F %T");
+                  std::setw(5) << pkt.l4_dst << " | " <<
+                  std::put_time(std::localtime(&timestamp), "%F %T") << " | ";
         switch(pkt.bt_t){
             case bt_type_t::QUERY_PING:
                 std::cout << "bittorrent_dht_query_ping";
@@ -114,9 +116,7 @@ void output_pkt(const packet_data_t& pkt){
 }
 
 void output_flow(const flow_data_t& flow){
-    static std::mutex mtx;
 
-    mtx.lock();
     if(program_data.program_flags & program_flags_t::only_bt && flow.flow_type == bt_type_t::UNKNOWN)
         return;
 
@@ -186,8 +186,6 @@ void output_flow(const flow_data_t& flow){
         }
         std::cout << std::endl;
     }
-    mtx.unlock();
-
 }
 
 bool pkt_pair_timeout_check(const packet_data_t &early_pkt, const packet_data_t &late_pkt) {

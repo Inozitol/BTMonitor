@@ -15,7 +15,7 @@
 program_data_t program_data;
 packet_data_t pkt{};
 thread_killer_t thread_killer;
-std::vector <std::future<void>> tasks;
+std::future<void> timeout_task;
 
 void packet_callback(u_char*, const struct pcap_pkthdr*, const u_char*);
 
@@ -31,9 +31,7 @@ void signal_handle(int sig){
         if(program_data.program_flags & program_flags_t::flow_mode){
             std::cout << "Waiting for threads to finish." << std::endl;
             thread_killer.kill();
-            for(auto&& task:tasks){
-                task.wait();
-            }
+            timeout_task.wait();
         }
     }
     exit(sig);
@@ -81,13 +79,20 @@ int main(int argc, char* argv[]) {
             program_data.program_flags |= program_flags_t::only_bt;
         }else if(*i == "-f" || *i == "--flow-mode"){
             program_data.program_flags |= program_flags_t::flow_mode;
-        }else if(*i == "-ft" || *i == "--flow-timeout"){
+        }else if(*i == "-ft" || *i == "--flow-timeout") {
             i++;
-            if(i == args_vec.end()){
-                fprintf(stderr, "Error: Missing time argument in timeout. See --help for more information.\n");
+            if (i == args_vec.end()) {
+                fprintf(stderr, "Error: Missing time argument in --flow-timeout. See --help for more information.\n");
                 return -1;
             }
             program_data.flow_timeout = std::stoi(*i);
+        }else if(*i == "-fw" || *i == "--flow-wait"){
+            i++;
+            if(i == args_vec.end()){
+                fprintf(stderr, "Error: Missing time argument in --flow-wait. See --help for more information.\n");
+                return -1;
+            }
+            program_data.flow_wait = std::stoi(*i);
         }else if(*i == "-h" || *i == "--help"){
             std::cout << "BitTorrent Monitor\n";
             std::cout << "Output data order:\n";
@@ -99,21 +104,30 @@ int main(int argc, char* argv[]) {
             std::cout << "-s, --to-stdout\n\t\tOutputs live data into stdout.\n";
             std::cout << "-b, --only-bt\n\t\tOutputs only packets attributed to BitTorrent traffic.\n";
             std::cout << "-f, --flow-mode\n\t\tAnalyzes traffic based on bidirectional flows between IPs and ports.\n";
-            std::cout << "-ft [MICROSECONDS], --flow-timeout [MICROSECONDS]\n\t\tSets the timeout timespan for flows.\n";
+            std::cout << "-ft [MICROSECONDS], --flow-timeout [MICROSECONDS]\n\t\tSets the timeout timespan for flows. Default value is 1000000.\n";
+            std::cout << "-fw [SECONDS], --flow-wait [SECONDS]\n\t\tLive monitoring in flow mode runs a secondary thread to check for timed out flows.\n";
+            std::cout << "\t\tThis option defines the period in seconds on which this thread will check for those flows.\n";
             std::cout << std::endl;
             return 0;
         }
     }
 
+    // User didn't select any output
     if(!(program_data.program_flags & program_flags_t::to_file) && !(program_data.program_flags & program_flags_t::to_stdout)){
-        std::cout << "No output selected. See --help for more information." << std::endl;
+        fprintf(stderr,"No output selected. See --help for more information.\n");
+
         return -1;
     }
 
+    // User selected both interface and pcap file input. Pcap file has priority over live monitoring.
+    if((program_data.program_flags & program_flags_t::offline_mode) && (program_data.program_flags & program_flags_t::manual_interface)){
+        fprintf(stderr,"Interface selected in offline mode. Ignoring interface argument.\n");
+    }
+
     if((program_data.program_flags & program_flags_t::flow_mode) && !(program_data.program_flags & program_flags_t::offline_mode) ) {
-        flow_analyzer::timeout_clear_start(program_data.flow_wait);
-    }else{
-        dht_regex::history_clear_start(30);
+        flow_analyzer::timeout_clear_start(program_data.flow_wait);     // Starting periodically started thread to check flow timeouts
+    }else if(!(program_data.program_flags & program_flags_t::flow_mode)){
+        dht_regex::history_clear_start(30);     // Starting periodically started thread to clean old DHT memory
     }
 
     pcap_t* handle;
@@ -122,10 +136,10 @@ int main(int argc, char* argv[]) {
     if(program_data.program_flags & program_flags_t::offline_mode){                 // User picked pcap file as input
         if((handle = pcap_open_offline(program_data.pcap_file.data(), err_buffer)) == nullptr){
             fprintf(stderr,"Unable to open pcap file %s \n", program_data.pcap_file.data());
-            (stderr, "%s\n", err_buffer);
+            fprintf(stderr, "%s\n", err_buffer);
             return -1;
         }
-    }else if(program_data.program_flags & program_flags_t::manual_interface) {     // User picked interface in an argument
+    }else if(program_data.program_flags & program_flags_t::manual_interface) {      // User picked interface in an argument
         if((handle = pcap_open_live(program_data.interface.data(), 65536, 1, 1000, err_buffer)) == nullptr){
             fprintf(stderr,"Unable to open open interface %s \n", program_data.interface.data());
             fprintf(stderr, "%s\n",err_buffer);
@@ -178,11 +192,8 @@ int main(int argc, char* argv[]) {
                 flow.second.output_flow();
             }
         }else {
-            //std::cout << "Waiting for threads to finish." << std::endl;
             thread_killer.kill();
-            for (auto &&task: tasks) {
-                task.wait();
-            }
+            timeout_task.wait();
         }
     }
 

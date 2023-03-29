@@ -23,8 +23,8 @@ inline program_flags_t operator|(program_flags_t ls, program_flags_t rs){
     return static_cast<program_flags_t>(static_cast<u_int8_t>(ls) | static_cast<u_int8_t>(rs));
 }
 
-inline program_flags_t operator&(program_flags_t ls, program_flags_t rs){
-    return static_cast<program_flags_t>(static_cast<u_int8_t>(ls) & static_cast<u_int8_t>(rs));
+inline bool operator&(program_flags_t ls, program_flags_t rs){
+    return (static_cast<program_flags_t>(static_cast<u_int8_t>(ls) & static_cast<u_int8_t>(rs)) == rs);
 }
 
 inline program_flags_t& operator|=(program_flags_t &ls, program_flags_t rs){
