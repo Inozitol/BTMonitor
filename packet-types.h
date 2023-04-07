@@ -11,7 +11,7 @@ using micro_timepoint = std::chrono::time_point<std::chrono::system_clock, std::
 
 /** @struct packet_data_t
  * @brief Data defining a packet
- * @var ts Timestamp
+ * @var timestamp Timestamp
  * @var ip_src Source IP
  * @var ip_dst Destination IP
  * @var l4_p Value found in field 'Protocol' of IP header
@@ -21,7 +21,7 @@ using micro_timepoint = std::chrono::time_point<std::chrono::system_clock, std::
  * @var payload Payload of the packet as seen by transport layer (only used in flow mode)
  */
 struct packet_data_t {
-    micro_timepoint ts{};
+    micro_timepoint timestamp{};
     in_addr ip_src{};
     in_addr ip_dst{};
     u_char l4_p{};

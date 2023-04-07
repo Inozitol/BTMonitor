@@ -47,16 +47,16 @@ bt_type_t dht_regex::response_match(const std::string &payload) {
         type = query_history.at(transaction_id).first;
         query_history.erase(transaction_id);
         switch(type){
-            case bt_type_t::QUERY_PING:
-                return bt_type_t::RESPONSE_PING;
-            case bt_type_t::QUERY_FIND_NODE:
-                return bt_type_t::RESPONSE_FIND_NODE;
+            case bt_type_t::DHT_QUERY_PING:
+                return bt_type_t::DHT_RESPONSE_PING;
+            case bt_type_t::DHT_QUERY_FIND_NODE:
+                return bt_type_t::DHT_RESPONSE_FIND_NODE;
 
-            case bt_type_t::QUERY_GET_PEERS:
-                return bt_type_t::RESPONSE_GET_PEERS;
+            case bt_type_t::DHT_QUERY_GET_PEERS:
+                return bt_type_t::DHT_RESPONSE_GET_PEERS;
 
-            case bt_type_t::QUERY_ANNOUNCE_PEER:
-                return bt_type_t::RESPONSE_ANNOUNCE_PEER;
+            case bt_type_t::DHT_QUERY_ANNOUNCE_PEER:
+                return bt_type_t::DHT_RESPONSE_ANNOUNCE_PEER;
 
             case bt_type_t::UNKNOWN:
             default:

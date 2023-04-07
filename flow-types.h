@@ -10,13 +10,13 @@
 #include "flow-keys-types.h"
 #include "thread-killer.h"
 
-struct direct_flow_t;
+struct directional_flow_key_t;
 
 extern std::future<void> timeout_task;
 
 /** @struct flow_data_t
  * @brief Data holding information extracted from one bidirectional flow.
- * @var direct_flow_t Information about a one way flow (which direction doesn't matter)
+ * @var src_info Information about a one way flow (which direction doesn't matter)
  * @var pkt_count Number of packets in a flow
  * @var total_payload Total amount of data in bytes
  * @var flow_type Type of BitTorrent traffic inside the flow
@@ -24,7 +24,7 @@ extern std::future<void> timeout_task;
  * @var to Timestamp of last packet
  */
 struct flow_data_t{
-    direct_flow_t header_info;
+    directional_flow_key_t src_info;
     std::size_t pkt_count;
     uint32_t total_payload;
     bt_type_t flow_type;
@@ -32,14 +32,16 @@ struct flow_data_t{
     std::time_t to;
 };
 
-/** @struct bidirectional_flow
+/** @struct bidirectional_flow_data
  * @brief Struct defining data and methods for one bidirectional flow.
  * @var packets Vector with ordered packets inside the flow
+ * @var src Direct flow defined from first captured packet to remember source direction
  */
-struct bidirectional_flow{
+struct bidirectional_flow_data{
     std::vector<packet_data_t> packets;
 
-    bidirectional_flow() = default;
+    bidirectional_flow_data() = default;
     void add_packet(const packet_data_t&);
     void output_flow() const;
+    [[nodiscard]] bt_type_t analyze_flow() const;
 };

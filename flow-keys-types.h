@@ -5,7 +5,7 @@
 
 #include "packet-types.h"
 
-/** @struct direct_flow_t
+/** @struct directional_flow_key_t
  * @brief Data holding information for one-way flow
  * @var ip_src Source IP
  * @var ip_dst Destination IP
@@ -13,18 +13,20 @@
  * @var l4_src Source port of transport layer
  * @var l4_dst Destination port of transport layer
  */
-struct direct_flow_t {
+struct directional_flow_key_t {
     in_addr ip_src;
     in_addr ip_dst;
     uint8_t l4_p;
     uint16_t l4_src;
     uint16_t l4_dst;
 
-    direct_flow_t() = default;
-    direct_flow_t(in_addr ip_src, in_addr ip_dst, uint8_t l4_p, uint16_t l4_src, uint16_t l4_dst);
-    explicit direct_flow_t(const packet_data_t& pkt);
+    directional_flow_key_t() = default;
+    directional_flow_key_t(in_addr ip_src, in_addr ip_dst, uint8_t l4_p, uint16_t l4_src, uint16_t l4_dst);
+    explicit directional_flow_key_t(const packet_data_t& pkt);
 
-    bool operator==(const direct_flow_t& other) const{
+    [[maybe_unused]] directional_flow_key_t reverse() const;
+
+    bool operator==(const directional_flow_key_t& other) const{
         return  this->ip_src.s_addr == other.ip_src.s_addr &&
                 this->ip_dst.s_addr == other.ip_dst.s_addr &&
                 this->l4_p == other.l4_p &&
@@ -44,11 +46,11 @@ struct direct_flow_t {
  * @var second One way flow (from B to A)
  */
 struct bidirectional_flow_key_t{
-    direct_flow_t first{};
-    direct_flow_t second{};
+    directional_flow_key_t first{};
+    directional_flow_key_t second{};
 
     bidirectional_flow_key_t() = default;
-    explicit bidirectional_flow_key_t(const direct_flow_t&);
+    explicit bidirectional_flow_key_t(const directional_flow_key_t&);
     explicit bidirectional_flow_key_t(const packet_data_t&);
 
     bool operator==(const bidirectional_flow_key_t& other) const{
@@ -57,9 +59,9 @@ struct bidirectional_flow_key_t{
 };
 
 /** @struct defined_hash
- * @brief Custom hash used to hash structs direct_flow_t and bidirectional_flow_key_t
+ * @brief Custom hash used to hash structs directional_flow_key_t and bidirectional_flow_key_t
  */
 struct defined_hash {
-    std::size_t operator()(const direct_flow_t& direct_flow) const;
+    std::size_t operator()(const directional_flow_key_t& direct_flow) const;
     std::size_t operator()(const bidirectional_flow_key_t& bidirectional_flow_key) const;
 };

@@ -2,7 +2,7 @@
 
 void init_csv(){
     if(program_data.program_flags & program_flags_t::flow_mode) {
-        program_data.out_file << "IP 1,IP 2,L4 Protocol,L4 Port 1,L4 Port 2,First Packet Timestamp,Last Packet Timestamp,Total Payload Size,Packet Count,Packet type\n";
+        program_data.out_file << "IP Source,IP Destination,L4 Protocol,L4 Source Port,L4 Destination Port,First Packet Timestamp,Last Packet Timestamp,Total Payload Size,Packet Count,Packet types inside\n";
     }else{
         program_data.out_file << "IP Source,IP Destination,L4 Protocol,L4 Source Port,L4 Destination Port,Packet Timestamp,Packet type\n";
     }
@@ -12,7 +12,7 @@ void output_pkt(const packet_data_t& pkt){
     if(program_data.program_flags & program_flags_t::only_bt && pkt.bt_t == bt_type_t::UNKNOWN)
         return;
 
-    const std::time_t timestamp = std::chrono::system_clock::to_time_t(pkt.ts);
+    const std::time_t timestamp = std::chrono::system_clock::to_time_t(pkt.timestamp);
 
     if(program_data.program_flags & program_flags_t::to_file){
         program_data.out_file <<
@@ -23,42 +23,44 @@ void output_pkt(const packet_data_t& pkt){
                               pkt.l4_dst << ',' <<
                               std::put_time(std::localtime(&timestamp), "%F %T") << " | ";
         switch(pkt.bt_t){
-
-            case bt_type_t::QUERY_PING:
-                program_data.out_file << "bittorrent_dht_query_ping";
+            case bt_type_t::PP_HANDSHAKE:
+                program_data.out_file << "PP_HANDSHAKE";
                 break;
-            case bt_type_t::QUERY_FIND_NODE:
-                program_data.out_file << "bittorrent_dht_query_find_node";
+            case bt_type_t::DHT_QUERY_PING:
+                program_data.out_file << "DHT_QUERY_PING";
                 break;
-            case bt_type_t::QUERY_GET_PEERS:
-                program_data.out_file << "bittorrent_dht_query_get_peers";
+            case bt_type_t::DHT_QUERY_FIND_NODE:
+                program_data.out_file << "DHT_QUERY_FIND_NODE";
                 break;
-            case bt_type_t::QUERY_ANNOUNCE_PEER:
-                program_data.out_file << "bittorrent_dht_query_announce_peers";
+            case bt_type_t::DHT_QUERY_GET_PEERS:
+                program_data.out_file << "DHT_QUERY_GET_PEERS";
                 break;
-            case bt_type_t::RESPONSE_PING:
-                program_data.out_file << "bittorrent_dht_response_ping";
+            case bt_type_t::DHT_QUERY_ANNOUNCE_PEER:
+                program_data.out_file << "DHT_QUERY_ANNOUNCE_PEER";
                 break;
-            case bt_type_t::RESPONSE_FIND_NODE:
-                program_data.out_file << "bittorrent_dht_response_find_node";
+            case bt_type_t::DHT_RESPONSE_PING:
+                program_data.out_file << "DHT_RESPONSE_PING";
                 break;
-            case bt_type_t::RESPONSE_GET_PEERS:
-                program_data.out_file << "bittorrent_dht_response_get_peers";
+            case bt_type_t::DHT_RESPONSE_FIND_NODE:
+                program_data.out_file << "DHT_RESPONSE_FIND_NODE";
                 break;
-            case bt_type_t::RESPONSE_ANNOUNCE_PEER:
-                program_data.out_file << "bittorrent_dht_response_announce_peer";
+            case bt_type_t::DHT_RESPONSE_GET_PEERS:
+                program_data.out_file << "DHT_RESPONSE_GET_PEERS";
+                break;
+            case bt_type_t::DHT_RESPONSE_ANNOUNCE_PEER:
+                program_data.out_file << "DHT_RESPONSE_ANNOUNCE_PEER";
                 break;
             case bt_type_t::DNS_BOOTSTRAP:
-                program_data.out_file << "bittorrent_dns_bootstrap";
+                program_data.out_file << "DNS_BOOTSTRAP";
                 break;
             case bt_type_t::DNS_MAINLINE_STAT:
-                program_data.out_file << "bittorent_dns_mainline_stats";
+                program_data.out_file << "DNS_MAINLINE_STAT";
                 break;
             case bt_type_t::DNS_MAINLINE:
-                program_data.out_file << "bittorent_dns_mainline";
+                program_data.out_file << "DNS_MAINLINE";
                 break;
             case bt_type_t::UNKNOWN:
-                program_data.out_file << "non_bt";
+                program_data.out_file << "NON_BT";
                 break;
         }
         program_data.out_file << '\n';
@@ -74,41 +76,44 @@ void output_pkt(const packet_data_t& pkt){
                   std::setw(5) << pkt.l4_dst << " | " <<
                   std::put_time(std::localtime(&timestamp), "%F %T") << " | ";
         switch(pkt.bt_t){
-            case bt_type_t::QUERY_PING:
-                std::cout << "bittorrent_dht_query_ping";
+            case bt_type_t::PP_HANDSHAKE:
+                std::cout << "PP_HANDSHAKE";
                 break;
-            case bt_type_t::QUERY_FIND_NODE:
-                std::cout << "bittorrent_dht_query_find_node";
+            case bt_type_t::DHT_QUERY_PING:
+                std::cout << "DHT_QUERY_PING";
                 break;
-            case bt_type_t::QUERY_GET_PEERS:
-                std::cout << "bittorrent_dht_query_get_peers";
+            case bt_type_t::DHT_QUERY_FIND_NODE:
+                std::cout << "DHT_QUERY_FIND_NODE";
                 break;
-            case bt_type_t::QUERY_ANNOUNCE_PEER:
-                std::cout << "bittorrent_dht_query_announce_peers";
+            case bt_type_t::DHT_QUERY_GET_PEERS:
+                std::cout << "DHT_QUERY_GET_PEERS";
                 break;
-            case bt_type_t::RESPONSE_PING:
-                std::cout << "bittorrent_dht_response_ping";
+            case bt_type_t::DHT_QUERY_ANNOUNCE_PEER:
+                std::cout << "DHT_QUERY_ANNOUNCE_PEER";
                 break;
-            case bt_type_t::RESPONSE_FIND_NODE:
-                std::cout << "bittorrent_dht_response_find_node";
+            case bt_type_t::DHT_RESPONSE_PING:
+                std::cout << "DHT_RESPONSE_PING";
                 break;
-            case bt_type_t::RESPONSE_GET_PEERS:
-                std::cout << "bittorrent_dht_response_get_peers";
+            case bt_type_t::DHT_RESPONSE_FIND_NODE:
+                std::cout << "DHT_RESPONSE_FIND_NODE";
                 break;
-            case bt_type_t::RESPONSE_ANNOUNCE_PEER:
-                std::cout << "bittorrent_dht_response_announce_peer";
+            case bt_type_t::DHT_RESPONSE_GET_PEERS:
+                std::cout << "DHT_RESPONSE_GET_PEERS";
+                break;
+            case bt_type_t::DHT_RESPONSE_ANNOUNCE_PEER:
+                std::cout << "DHT_RESPONSE_ANNOUNCE_PEER";
                 break;
             case bt_type_t::DNS_BOOTSTRAP:
-                std::cout << "bittorrent_dns_bootstrap";
+                std::cout << "DNS_BOOTSTRAP";
                 break;
             case bt_type_t::DNS_MAINLINE_STAT:
-                std::cout << "bittorent_dns_mainline_stats";
+                std::cout << "DNS_MAINLINE_STAT";
                 break;
             case bt_type_t::DNS_MAINLINE:
-                std::cout << "bittorent_dns_mainline";
+                std::cout << "DNS_MAINLINE";
                 break;
             case bt_type_t::UNKNOWN:
-                std::cout << "non_bt";
+                std::cout << "NON_BT";
                 break;
         }
         std::cout << std::endl;
@@ -122,74 +127,111 @@ void output_flow(const flow_data_t& flow){
 
     if(program_data.program_flags & program_flags_t::to_file){
         program_data.out_file <<
-                              inet_ntoa(flow.header_info.ip_src) << ',' <<
-                              inet_ntoa(flow.header_info.ip_dst) << ',' <<
-                              ((flow.header_info.l4_p == IPPROTO_UDP) ? ("udp") : ("tcp")) << ',' <<
-                              flow.header_info.l4_src << ',' <<
-                              flow.header_info.l4_dst << ',' <<
+                              inet_ntoa(flow.src_info.ip_src) << ',' <<
+                              inet_ntoa(flow.src_info.ip_dst) << ',' <<
+                              ((flow.src_info.l4_p == IPPROTO_UDP) ? ("udp") : ("tcp")) << ',' <<
+                              flow.src_info.l4_src << ',' <<
+                              flow.src_info.l4_dst << ',' <<
                               std::put_time(std::localtime(&flow.from), "%F %T") << ',' <<
                               std::put_time(std::localtime(&flow.to),   "%F %T") << ',' <<
                               flow.total_payload << ',' <<
                               flow.pkt_count << ',';
 
-        switch(flow.flow_type){
-            case bt_type_t::UNKNOWN:
-                program_data.out_file << "non_bt_flow";
-                break;
-
-            case bt_type_t::QUERY_PING:
-            case bt_type_t::QUERY_FIND_NODE:
-            case bt_type_t::QUERY_GET_PEERS:
-            case bt_type_t::QUERY_ANNOUNCE_PEER:
-            case bt_type_t::RESPONSE_PING:
-            case bt_type_t::RESPONSE_FIND_NODE:
-            case bt_type_t::RESPONSE_GET_PEERS:
-            case bt_type_t::RESPONSE_ANNOUNCE_PEER:
-            case bt_type_t::DNS_BOOTSTRAP:
-            case bt_type_t::DNS_MAINLINE_STAT:
-            case bt_type_t::DNS_MAINLINE:
-                break;
+        if(flow.flow_type & bt_type_t::PP_HANDSHAKE) {
+            program_data.out_file << "PP_HANDSHAKE ";
         }
+        if(flow.flow_type & bt_type_t::DHT_QUERY_PING) {
+            program_data.out_file << "DHT_QUERY_PING ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_QUERY_FIND_NODE) {
+            program_data.out_file << "DHT_QUERY_FIND_NODE ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_QUERY_GET_PEERS) {
+            program_data.out_file << "DHT_QUERY_GET_PEERS ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_QUERY_ANNOUNCE_PEER) {
+            program_data.out_file << "DHT_QUERY_ANNOUNCE_PEER ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_RESPONSE_PING) {
+            program_data.out_file << "DHT_RESPONSE_PING ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_RESPONSE_FIND_NODE) {
+            program_data.out_file << "DHT_RESPONSE_FIND_NODE ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_RESPONSE_GET_PEERS) {
+            program_data.out_file << "DHT_RESPONSE_GET_PEERS ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_RESPONSE_ANNOUNCE_PEER) {
+            program_data.out_file << "DHT_RESPONSE_ANNOUNCE_PEER ";
+        }
+        if(flow.flow_type & bt_type_t::DNS_BOOTSTRAP) {
+            program_data.out_file << "DNS_BOOTSTRAP ";
+        }
+        if(flow.flow_type & bt_type_t::DNS_MAINLINE_STAT) {
+            program_data.out_file << "DNS_MAINLINE_STAT ";
+        }
+        if(flow.flow_type & bt_type_t::DNS_MAINLINE) {
+            program_data.out_file << "DNS_MAINLINE ";
+        }
+
         program_data.out_file << '\n';
         program_data.out_file.flush();
     }
 
     if(program_data.program_flags & program_flags_t::to_stdout){
         std::cout <<
-                std::setw(15) << inet_ntoa(flow.header_info.ip_src) << " | " <<
-                std::setw(15) << inet_ntoa(flow.header_info.ip_dst) << " | " <<
-                ((flow.header_info.l4_p == IPPROTO_UDP) ? ("udp") : ("tcp")) << " | " <<
-                std::setw(5) << flow.header_info.l4_src << " | " <<
-                std::setw(5) << flow.header_info.l4_dst << " | " <<
-                std::put_time(std::localtime(&flow.from), "%F %T") << " | " <<
+                  std::setw(15) << inet_ntoa(flow.src_info.ip_src) << " | " <<
+                  std::setw(15) << inet_ntoa(flow.src_info.ip_dst) << " | " <<
+                  ((flow.src_info.l4_p == IPPROTO_UDP) ? ("udp") : ("tcp")) << " | " <<
+                  std::setw(5) << flow.src_info.l4_src << " | " <<
+                  std::setw(5) << flow.src_info.l4_dst << " | " <<
+                  std::put_time(std::localtime(&flow.from), "%F %T") << " | " <<
                 std::put_time(std::localtime(&flow.to),   "%F %T") << " | " <<
-                flow.total_payload << " | " <<
-                flow.pkt_count << " | ";
+                std::setw(10) << flow.total_payload << " | " <<
+                std::setw(5) << flow.pkt_count << " | ";
 
-        switch(flow.flow_type){
-            case bt_type_t::UNKNOWN:
-                std::cout << "non_bt_flow";
-                break;
-
-            case bt_type_t::QUERY_PING:
-            case bt_type_t::QUERY_FIND_NODE:
-            case bt_type_t::QUERY_GET_PEERS:
-            case bt_type_t::QUERY_ANNOUNCE_PEER:
-            case bt_type_t::RESPONSE_PING:
-            case bt_type_t::RESPONSE_FIND_NODE:
-            case bt_type_t::RESPONSE_GET_PEERS:
-            case bt_type_t::RESPONSE_ANNOUNCE_PEER:
-            case bt_type_t::DNS_BOOTSTRAP:
-            case bt_type_t::DNS_MAINLINE_STAT:
-            case bt_type_t::DNS_MAINLINE:
-                break;
+        if(flow.flow_type & bt_type_t::PP_HANDSHAKE) {
+            std::cout << "PP_HANDSHAKE ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_QUERY_PING) {
+            std::cout << "DHT_QUERY_PING ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_QUERY_FIND_NODE) {
+            std::cout << "DHT_QUERY_FIND_NODE ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_QUERY_GET_PEERS) {
+            std::cout << "DHT_QUERY_GET_PEERS ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_QUERY_ANNOUNCE_PEER) {
+            std::cout << "DHT_QUERY_ANNOUNCE_PEER ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_RESPONSE_PING) {
+            std::cout << "DHT_RESPONSE_PING ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_RESPONSE_FIND_NODE) {
+            std::cout << "DHT_RESPONSE_FIND_NODE ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_RESPONSE_GET_PEERS) {
+            std::cout << "DHT_RESPONSE_GET_PEERS ";
+        }
+        if(flow.flow_type & bt_type_t::DHT_RESPONSE_ANNOUNCE_PEER) {
+            std::cout << "DHT_RESPONSE_ANNOUNCE_PEER ";
+        }
+        if(flow.flow_type & bt_type_t::DNS_BOOTSTRAP) {
+            std::cout << "DNS_BOOTSTRAP ";
+        }
+        if(flow.flow_type & bt_type_t::DNS_MAINLINE_STAT) {
+            std::cout << "DNS_MAINLINE_STAT ";
+        }
+        if(flow.flow_type & bt_type_t::DNS_MAINLINE) {
+            std::cout << "DNS_MAINLINE ";
         }
         std::cout << std::endl;
     }
 }
 
 bool pkt_pair_timeout_check(const packet_data_t &early_pkt, const packet_data_t &late_pkt) {
-    if(timeout_check(early_pkt.ts, late_pkt.ts)){
+    if(timeout_check(early_pkt.timestamp, late_pkt.timestamp)){
         return true;
     }
     return false;

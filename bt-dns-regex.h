@@ -24,7 +24,7 @@ namespace dns_regex{
     const std::vector<std::regex> DNS_MAINLINE{
         std::regex(R"(\x04apps\x0abittorrent\x03com)"),
         std::regex(R"(\x06update\x0abittorrent\x03com)"),
-        std::regex(R"(\x03cnd\x02ap\x0abittorrent\x03com)")
+        std::regex(R"(\x03cdn\x02ap\x0abittorrent\x03com)")
     };
 
     bt_type_t match(const std::string& payload);

@@ -16,7 +16,7 @@ enum program_flags_t : u_int8_t {
     to_stdout        = 1 << 3,
     only_bt          = 1 << 4,
     flow_mode        = 1 << 5,
-    flow_timeout     = 1 << 6
+    well_defined     = 1 << 6
 };
 
 inline program_flags_t operator|(program_flags_t ls, program_flags_t rs){

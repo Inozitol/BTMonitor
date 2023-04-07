@@ -9,6 +9,7 @@
 
 #include "bt-dht-regex.h"
 #include "bt-dns-regex.h"
+#include "bt-pp-regex.h"
 #include "flow-analyzer.h"
 #include "utils.h"
 
@@ -63,7 +64,6 @@ int main(int argc, char* argv[]) {
                 fprintf(stderr, "Error: file '%s' could not be opened.", &(*i->data()));
                 return -1;
             }
-            init_csv();
             program_data.program_flags |= program_flags_t::to_file;
         }else if(*i == "-p" || *i == "--pcap"){
             i++;
@@ -86,17 +86,22 @@ int main(int argc, char* argv[]) {
                 return -1;
             }
             program_data.flow_timeout = std::stoi(*i);
-        }else if(*i == "-fw" || *i == "--flow-wait"){
+        }else if(*i == "-fw" || *i == "--flow-wait") {
             i++;
-            if(i == args_vec.end()){
+            if (i == args_vec.end()) {
                 fprintf(stderr, "Error: Missing time argument in --flow-wait. See --help for more information.\n");
                 return -1;
             }
             program_data.flow_wait = std::stoi(*i);
+        }else if(*i == "-wd" || *i == "--well-defined"){
+            program_data.program_flags |= program_flags_t::well_defined;
         }else if(*i == "-h" || *i == "--help"){
             std::cout << "BitTorrent Monitor\n";
             std::cout << "Output data order:\n";
+            std::cout << "Packet mode:\n";
             std::cout << "\tIP Source | IP Destination | L4 Protocol | L4 Source Port | L4 Destination Port | Packet Timestamp | Packet type\n";
+            std::cout << "Flow mode:\n";
+            std::cout << "\tIP Source | IP Destination | L4 Protocol | L4 Source Port | L4 Destination Port | First Packet Timestamp | Last Packet Timestamp | Total Payload Size | Packet Count | Packet types inside\n";
             std::cout << "Options:\n";
             std::cout << "-i [INTERFACE], --interface [INTERFACE]\n\t\tSelect interface to listen on.\n";
             std::cout << "-o [FILE], --output [FILE]\n\t\tWrites gathered packets on lines of selected FILE in csv format.\n";
@@ -107,9 +112,14 @@ int main(int argc, char* argv[]) {
             std::cout << "-ft [MICROSECONDS], --flow-timeout [MICROSECONDS]\n\t\tSets the timeout timespan for flows. Default value is 1000000.\n";
             std::cout << "-fw [SECONDS], --flow-wait [SECONDS]\n\t\tLive monitoring in flow mode runs a secondary thread to check for timed out flows.\n";
             std::cout << "\t\tThis option defines the period in seconds on which this thread will check for those flows.\n";
+            std::cout << "-wd, --well-defined\n\t\tAllows the monitoring of well-defined ports (ports over below 1024). This is used to slightly increase precision over performance.\n";
             std::cout << std::endl;
             return 0;
         }
+    }
+
+    if(program_data.out_file.is_open()){
+        init_csv();
     }
 
     // User didn't select any output
@@ -188,7 +198,7 @@ int main(int argc, char* argv[]) {
 
     if(program_data.program_flags & program_flags_t::flow_mode){
         if(program_data.program_flags & program_flags_t::offline_mode){
-            for(auto& flow : flow_analyzer::flow_map){
+            for(auto& flow : flow_analyzer::flow_table){
                 flow.second.output_flow();
             }
         }else {
@@ -211,12 +221,15 @@ void process_tcp(const tcphdr* tcp_hdr, const u_char* packet, uint32_t hdrs_len,
 
     if(program_data.program_flags & program_flags_t::flow_mode){
         pkt.payload = payload;
-        flow_analyzer::process_pkt(pkt);
-        return;
+        flow_analyzer::process_pkt(pkt); return;
     }
 
-    pkt.bt_t = bt_type_t::UNKNOWN;
+    if(!(program_data.program_flags & program_flags_t::well_defined) && (src < 1024 || dst < 1024 )){
+        pkt.bt_t = bt_type_t::UNKNOWN;
+        output_pkt(pkt); return;
+    }
 
+    pkt.bt_t = pp_regex::match(payload);
     output_pkt(pkt);
 }
 
@@ -237,18 +250,22 @@ void process_udp(const udphdr* udp_hdr, const u_char* packet, uint32_t hdrs_len,
 
     if(src == 53 || dst == 53){
         pkt.bt_t = dns_regex::match(payload);
-        goto udp_exit;
+        output_pkt(pkt); return;
     }
 
-    if(src < 1024 || dst < 1024 ){
+    if(!(program_data.program_flags & program_flags_t::well_defined) && (src < 1024 || dst < 1024)){
         pkt.bt_t = bt_type_t::UNKNOWN;
-        goto udp_exit;
+        output_pkt(pkt); return;
     }
 
-    pkt.bt_t = dht_regex::match(payload);
-    goto udp_exit;
+    if((pkt.bt_t = dht_regex::match(payload)) != bt_type_t::UNKNOWN) {
+        output_pkt(pkt); return;
+    }
 
-    udp_exit:
+    if((pkt.bt_t = pp_regex::match(payload)) != bt_type_t::UNKNOWN) {
+        output_pkt(pkt); return;
+    }
+
     output_pkt(pkt);
 }
 
@@ -272,7 +289,7 @@ void packet_callback(u_char*, const struct pcap_pkthdr *header, const u_char* pa
     ip_hdr = (ip*)(packet + sizeof(struct ether_header));
     ip_len = ip_hdr->ip_hl*4;
 
-    pkt.ts = timeval2timepoint(header->ts);
+    pkt.timestamp = timeval2timepoint(header->ts);
     pkt.ip_src = ip_hdr->ip_src;
     pkt.ip_dst = ip_hdr->ip_dst;
     pkt.l4_p   = ip_hdr->ip_p;
