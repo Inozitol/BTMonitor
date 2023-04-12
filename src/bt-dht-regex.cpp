@@ -2,12 +2,12 @@
 #include "bt-dht-regex.h"
 
 
-bt_type_t dht_regex::query_match(const std::string &payload) {
+bt_type_t dht_regex::query_match(const std::string &payload, const bt_type_t& found_types) {
 
     bt_type_t type = bt_type_t::UNKNOWN;
 
     for(auto& pair : DHT_QUERY_VEC){
-        if(std::regex_search(payload,pair.first)){
+        if(!(pair.second & found_types) && std::regex_search(payload,pair.first)){
             type = pair.second;
             break;
         }
@@ -16,6 +16,7 @@ bt_type_t dht_regex::query_match(const std::string &payload) {
     uint8_t id_len;
     std::smatch match;
 
+    // Extracting transaction code from payload
     if(!std::regex_search(payload,match, TRANSACTION_CODE))
         return bt_type_t::UNKNOWN;
 
@@ -29,7 +30,7 @@ bt_type_t dht_regex::query_match(const std::string &payload) {
     return type;
 }
 
-bt_type_t dht_regex::response_match(const std::string &payload) {
+bt_type_t dht_regex::response_match(const std::string &payload, const bt_type_t&) {
 
     bt_type_t type;
     uint8_t id_len;
@@ -66,9 +67,9 @@ bt_type_t dht_regex::response_match(const std::string &payload) {
     return bt_type_t::UNKNOWN;
 }
 
-bt_type_t dht_regex::match(const std::string& payload) {
+bt_type_t dht_regex::match(const std::string& payload, const bt_type_t& found_types) {
     if(std::regex_search(payload, DHT_QUERY_HEAD))
-        return query_match(payload);
+        return query_match(payload, found_types);
 
     if(std::regex_search(payload, DHT_RESPONSE_HEAD))
         return response_match(payload);
@@ -80,7 +81,7 @@ void clean_history(){
     dht_regex::history_mutex.lock();
     auto now = std::chrono::steady_clock::now();
     for(auto entry = dht_regex::query_history.cbegin(); entry != dht_regex::query_history.cend();){
-        if(std::chrono::duration(now - entry->second.second).count() > 60) {
+        if((now - entry->second.second).count() > 60) {
             dht_regex::query_history.erase(entry++);
         }else{
             ++entry;

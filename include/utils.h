@@ -36,7 +36,7 @@ struct program_data_t{
     std::ofstream out_file;
     std::string pcap_file;
     uint16_t flow_wait = 1;
-    uint64_t flow_timeout = 1000000;    // Microseconds
+    uint64_t flow_timeout = 60000000;    // Microseconds
     program_flags_t program_flags{};
 };
 

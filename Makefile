@@ -1,15 +1,28 @@
+IDIR=./include
+ODIR=./obj
+SDIR=./src
+
 SRC=main.cpp bt-dht-regex.cpp bt-dns-regex.cpp bt-pp-regex.cpp flow-analyzer.cpp flow-keys-types.cpp flow-types.cpp thread-killer.cpp utils.cpp
-OBJ=$(SRC:%.cpp=$.o)
+_OBJ=$(SRC:%.cpp=%.o)
+OBJ=$(patsubst %,$(ODIR)/%,$(_OBJ))
+
 TRG=BTMonitor
-CC=gcc
-LIB=-lpcap
-FLG=
+CC=g++
+LIB=-lpcap -lpthread
+FLG=-I$(IDIR)
 
-.PHONY: all
-all: $(TRG)
+$(TRG): $(ODIR) build
 
-%.o: $(SRC)
+$(ODIR):
+	mkdir -p $@
+
+build: $(OBJ)
+	$(CC) -o $(TRG) $^ $(LIB) $(FLG)
+
+$(ODIR)/%.o: $(SDIR)/%.cpp
 	$(CC) -c -o $@ $< $(FLG)
 
-$(TRG): $(OBJ)
-	$(CC) -o $@ $^ $(LIB) $(FLG)
+.PHONY: clean
+clean:
+	rm -f $(TRG)
+	rm -rf $(ODIR)

@@ -21,7 +21,7 @@ void output_pkt(const packet_data_t& pkt){
                               ((pkt.l4_p == IPPROTO_UDP) ? ("udp") : ("tcp")) << ',' <<
                               pkt.l4_src << ',' <<
                               pkt.l4_dst << ',' <<
-                              std::put_time(std::localtime(&timestamp), "%F %T") << " | ";
+                              std::put_time(std::localtime(&timestamp), "%F %T") << ",";
         switch(pkt.bt_t){
             case bt_type_t::PP_HANDSHAKE:
                 program_data.out_file << "PP_HANDSHAKE";

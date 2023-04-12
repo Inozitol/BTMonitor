@@ -35,14 +35,15 @@ bt_type_t bidirectional_flow_data::analyze_flow() const {
     const auto& flow_info_pkt = *packets.begin();
 
     if(!(program_data.program_flags & program_flags_t::well_defined) &&
-        (flow_info_pkt.l4_src < 1024 || flow_info_pkt.l4_dst < 1024)){
+        (flow_info_pkt.l4_src < 1024 || flow_info_pkt.l4_dst < 1024) &&
+        (flow_info_pkt.l4_src != 53 && flow_info_pkt.l4_dst != 53)){
         return type;
     }
 
     switch(flow_info_pkt.l4_p){
         case IPPROTO_TCP:
             for(const auto & pkt : packets) {
-                if((tmp_type = pp_regex::match(pkt.payload)) != bt_type_t::UNKNOWN){
+                if(!(type & bt_type_t::PP_HANDSHAKE) && (tmp_type = pp_regex::match(pkt.payload)) != bt_type_t::UNKNOWN){
                     type |= tmp_type;
                 }
             }
@@ -55,10 +56,10 @@ bt_type_t bidirectional_flow_data::analyze_flow() const {
                     }
                     continue;
                 }
-                if((tmp_type = pp_regex::match(pkt.payload)) != bt_type_t::UNKNOWN){
+                if(!(type & bt_type_t::PP_HANDSHAKE) && (tmp_type = pp_regex::match(pkt.payload)) != bt_type_t::UNKNOWN){
                     type |= tmp_type;
                 }
-                if((tmp_type = dht_regex::match(pkt.payload)) != bt_type_t::UNKNOWN){
+                if((tmp_type = dht_regex::match(pkt.payload, type)) != bt_type_t::UNKNOWN){
                     type |= tmp_type;
                 }
             }

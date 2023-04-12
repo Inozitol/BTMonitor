@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
                 fprintf(stderr, "Error: Missing time argument in --flow-timeout. See --help for more information.\n");
                 return -1;
             }
-            program_data.flow_timeout = std::stoi(*i);
+            program_data.flow_timeout = std::stoi(*i)*1000000;
         }else if(*i == "-fw" || *i == "--flow-wait") {
             i++;
             if (i == args_vec.end()) {
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
             std::cout << "-s, --to-stdout\n\t\tOutputs live data into stdout.\n";
             std::cout << "-b, --only-bt\n\t\tOutputs only packets attributed to BitTorrent traffic.\n";
             std::cout << "-f, --flow-mode\n\t\tAnalyzes traffic based on bidirectional flows between IPs and ports.\n";
-            std::cout << "-ft [MICROSECONDS], --flow-timeout [MICROSECONDS]\n\t\tSets the timeout timespan for flows. Default value is 1000000.\n";
+            std::cout << "-ft [SECONDS], --flow-timeout [SECONDS]\n\t\tSets the timeout timespan for flows. Default value is 60.\n";
             std::cout << "-fw [SECONDS], --flow-wait [SECONDS]\n\t\tLive monitoring in flow mode runs a secondary thread to check for timed out flows.\n";
             std::cout << "\t\tThis option defines the period in seconds on which this thread will check for those flows.\n";
             std::cout << "-wd, --well-defined\n\t\tAllows the monitoring of well-defined ports (ports over below 1024). This is used to slightly increase precision over performance.\n";
@@ -211,6 +211,9 @@ int main(int argc, char* argv[]) {
 }
 
 void process_tcp(const tcphdr* tcp_hdr, const u_char* packet, uint32_t hdrs_len, uint32_t total_len){
+    if(hdrs_len > total_len)
+        return;
+
     uint16_t src = ntohs(tcp_hdr->source);
     uint16_t dst = ntohs(tcp_hdr->dest);
 
@@ -234,6 +237,9 @@ void process_tcp(const tcphdr* tcp_hdr, const u_char* packet, uint32_t hdrs_len,
 }
 
 void process_udp(const udphdr* udp_hdr, const u_char* packet, uint32_t hdrs_len, uint32_t total_len){
+    if(hdrs_len > total_len)
+        return;
+
     uint16_t src = ntohs(udp_hdr->source);
     uint16_t dst = ntohs(udp_hdr->dest);
 
