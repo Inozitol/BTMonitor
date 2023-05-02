@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #pragma once
 
 #include <fstream>
@@ -68,7 +73,12 @@ void output_flow(const flow_info_t& info);
 
 /**
  * @brief Algorithm for combining hashes
- * Inspired by: https://stackoverflow.com/a/2595226
+ *
+ *          Copyright Joe Coder 2004 - 2006.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_Utils_HashCombine.txt or copy at
+ *          https://www.boost.org/LICENSE_1_0.txt)
+ *
  * @param seed Seed of the hash that's changing
  * @param hash New hash to be applied on seed
  */

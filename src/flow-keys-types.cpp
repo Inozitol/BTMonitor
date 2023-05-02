@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #include <functional>
 #include "flow-keys-types.h"
 #include "utils.h"

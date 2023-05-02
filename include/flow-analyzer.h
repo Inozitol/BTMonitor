@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #pragma once
 
 #include <unordered_map>

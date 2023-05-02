@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #include "bt-pp-regex.h"
 
 bt_type_t pp_regex::match(const std::string& payload){

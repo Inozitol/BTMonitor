@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #include "bt-dns-regex.h"
 
 bt_type_t dns_regex::match(const std::string &payload) {

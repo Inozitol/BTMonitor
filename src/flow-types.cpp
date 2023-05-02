@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #include "flow-types.h"
 #include "utils.h"
 #include "pkt-analyzer.h"

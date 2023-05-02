@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #include <iostream>
 #include <pcap.h>
 #include <netinet/if_ether.h>

@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #include <iostream>
 #include "bt-dht-regex.h"
 #include "utils.h"

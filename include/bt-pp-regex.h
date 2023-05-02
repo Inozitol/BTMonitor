@@ -1,3 +1,8 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
+
 #pragma once
 #include <regex>
 #include "bt-types.h"

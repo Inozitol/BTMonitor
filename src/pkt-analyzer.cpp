@@ -1,3 +1,7 @@
+/**
+ * Author: Pavel Horáček
+ * Nick: xhorac19
+ */
 
 #include "pkt-analyzer.h"
 #include "utils.h"
