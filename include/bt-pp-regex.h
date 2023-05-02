@@ -4,10 +4,16 @@
 
 namespace pp_regex{
 
-    /// A regular expression that matches against a string inside Peer Protocol header
-    /// (see https://www.bittorrent.org/beps/bep_0003.html #peer protocol)
+    /**
+     * A regular expression that matches against a string inside Peer Protocol header
+     * (see https://www.bittorrent.org/beps/bep_0003.html #peer protocol)
+     */
     const std::regex PP_HEADER(R"(\x13BitTorrent protocol)");
 
-    /// Try and match against any Peer Protocol regex
-    bt_type_t match(const std::string& payload);
+    /**
+     * @brief Function tries to match protocol Peer header regex against the packet payload.
+     * @param payload Packet payload
+     * @return Type of BitTorrent communication inside the packet
+     */
+     bt_type_t match(const std::string& payload);
 }

@@ -4,44 +4,38 @@
 #include <chrono>
 #include <thread>
 #include <future>
+
 #include "packet-types.h"
 #include "flow-types.h"
 #include "bt-types.h"
 #include "flow-keys-types.h"
-#include "thread-killer.h"
 
 struct directional_flow_key_t;
 
-extern std::future<void> timeout_task;
+using micro_timepoint = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
 
-/** @struct flow_data_t
- * @brief Data holding information extracted from one bidirectional flow.
- * @var src_info Information about a one way flow (which direction doesn't matter)
- * @var pkt_count Number of packets in a flow
- * @var total_payload Total amount of data in bytes
- * @var flow_type Type of BitTorrent traffic inside the flow
- * @var from Timestamp of first packet
- * @var to Timestamp of last packet
+/**
+ * @struct flow_info_t
+ * @brief Struct defining data and methods for flow info.
  */
-struct flow_data_t{
-    directional_flow_key_t src_info;
-    std::size_t pkt_count;
-    uint32_t total_payload;
-    bt_type_t flow_type;
-    std::time_t from;
-    std::time_t to;
-};
+struct flow_info_t{
+    directional_flow_key_t src_info{};          ///< Network information about the flow in form of directional_flow_key_t
+    std::size_t pkt_count = 0;                  ///< Number of packets
+    uint32_t total_payload = 0;                 ///< Number of bytes transmitted through
+    bt_type_t flow_type = bt_type_t::UNKNOWN;   ///< Bitmap of BitTorrent types gathered
+    micro_timepoint first_pkt_time;             ///< Timestamp of the first packet
+    micro_timepoint last_pkt_time;              ///< Timestamp of the last packet
 
-/** @struct bidirectional_flow_data
- * @brief Struct defining data and methods for one bidirectional flow.
- * @var packets Vector with ordered packets inside the flow
- * @var src Direct flow defined from first captured packet to remember source direction
- */
-struct bidirectional_flow_data{
-    std::vector<packet_data_t> packets;
+    flow_info_t() = default;
 
-    bidirectional_flow_data() = default;
-    void add_packet(const packet_data_t&);
-    void output_flow() const;
-    [[nodiscard]] bt_type_t analyze_flow() const;
+    /**
+     * @brief Updates the flow with information from a new packet
+     * @param pkt New packet of the flow
+     */
+    void update_flow_info(const packet_data_t &pkt);
+
+    /**
+     * @brief Clears this structure into a fresh state
+     */
+    void clear_info();
 };

@@ -1,6 +1,6 @@
 #include <iostream>
 #include "bt-dht-regex.h"
-
+#include "utils.h"
 
 bt_type_t dht_regex::query_match(const std::string &payload, const bt_type_t& found_types) {
 
@@ -16,7 +16,7 @@ bt_type_t dht_regex::query_match(const std::string &payload, const bt_type_t& fo
     uint8_t id_len;
     std::smatch match;
 
-    // Extracting transaction code from payload
+    // Extracting transaction code first_pkt_time payload
     if(!std::regex_search(payload,match, TRANSACTION_CODE))
         return bt_type_t::UNKNOWN;
 
@@ -45,7 +45,7 @@ bt_type_t dht_regex::response_match(const std::string &payload, const bt_type_t&
 
     std::string transaction_id(payload,transaction_pos, id_len);
     if(query_history.count(transaction_id)){
-        type = query_history.at(transaction_id).first;
+        type = query_history.at(transaction_id).first; // TODO Handle exception with no transaction id !!!
         query_history.erase(transaction_id);
         switch(type){
             case bt_type_t::DHT_QUERY_PING:
@@ -81,7 +81,7 @@ void clean_history(){
     dht_regex::history_mutex.lock();
     auto now = std::chrono::steady_clock::now();
     for(auto entry = dht_regex::query_history.cbegin(); entry != dht_regex::query_history.cend();){
-        if((now - entry->second.second).count() > 60) {
+        if((now - entry->second.second).count() > program_data.dht_timeout) {
             dht_regex::query_history.erase(entry++);
         }else{
             ++entry;
@@ -93,8 +93,8 @@ void clean_history(){
 void dht_regex::history_clear_start(uint32_t period){
     std::thread([period](){
         while(true){
-            auto interval = std::chrono::steady_clock::now() + std::chrono::seconds(period);
             clean_history();
+            auto interval = std::chrono::steady_clock::now() + std::chrono::seconds(period);
             std::this_thread::sleep_until(interval);
         }
     }).detach();

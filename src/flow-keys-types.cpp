@@ -19,7 +19,7 @@ std::size_t defined_hash::operator()(const directional_flow_key_t& direct_flow) 
     return seed;
 }
 
-std::size_t defined_hash::operator()(const bidirectional_flow_key_t& bidirectional_flow_key) const{
+std::size_t defined_hash::operator()(const flow_key_t& bidirectional_flow_key) const{
     std::size_t first_h = defined_hash()(bidirectional_flow_key.first);
     std::size_t second_h = defined_hash()(bidirectional_flow_key.second);
 
@@ -44,11 +44,8 @@ directional_flow_key_t::directional_flow_key_t(const in_addr _ip_src,
 directional_flow_key_t::directional_flow_key_t(const packet_data_t &pkt):
         directional_flow_key_t(pkt.ip_src, pkt.ip_dst, pkt.l4_p, pkt.l4_src, pkt.l4_dst){}
 
-[[maybe_unused]] directional_flow_key_t directional_flow_key_t::reverse() const {
-    return directional_flow_key_t({ip_dst, ip_src, l4_p, l4_dst, l4_src});
-}
 
-bidirectional_flow_key_t::bidirectional_flow_key_t(const directional_flow_key_t& directional_flow){
+flow_key_t::flow_key_t(const directional_flow_key_t& directional_flow){
     std::size_t directional_flow_h = defined_hash()(directional_flow);
 
     directional_flow_key_t swaped_flow(directional_flow.ip_dst,
@@ -68,5 +65,5 @@ bidirectional_flow_key_t::bidirectional_flow_key_t(const directional_flow_key_t&
     }
 }
 
-bidirectional_flow_key_t::bidirectional_flow_key_t(const packet_data_t& pkt):
-bidirectional_flow_key_t({pkt.ip_src, pkt.ip_dst, pkt.l4_p, pkt.l4_src, pkt.l4_dst}){}
+flow_key_t::flow_key_t(const packet_data_t& pkt):
+        flow_key_t({pkt.ip_src, pkt.ip_dst, pkt.l4_p, pkt.l4_src, pkt.l4_dst}){}
