@@ -19,10 +19,8 @@ Při používání programu v režimu aktivního monitorování je třeba progra
 Program obsahuje argument `--help`, který vypíše veškeré možné argumenty programu.
 
 Příklad používání v režimu aktivního monitorování:
-
     `sudo ./BTMonitor -i enp4s0 -f monitor.csv`
 
 Příklad používání v režimu offline analýzy souboru pcap:
-
     `./BTMonitor -p packets.pcap -f monitor.csv`
 
